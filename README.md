@@ -1,4 +1,21 @@
 # ORB-SLAM2
+
+### Added on July 12th, 2022
+- EuRoC stereo
+```bash
+cd scripts
+source ~/anaconda3/bin/activate
+conda activate slam_ws
+## batch running
+# change the parameters in the file
+python Run_EuRoC_Stereo_Ubuntu20.04.py
+
+## batch evaluation
+# change the parameters in the file
+python Evaluate_EuRoC_Stereo.py
+```
+---
+
 **Authors:** [Raul Mur-Artal](http://webdiis.unizar.es/~raulmur/), [Juan D. Tardos](http://webdiis.unizar.es/~jdtardos/), [J. M. M. Montiel](http://webdiis.unizar.es/~josemari/) and [Dorian Galvez-Lopez](http://doriangalvez.com/) ([DBoW2](https://github.com/dorian3d/DBoW2))
 
 **13 Jan 2017**: OpenCV 3 and Eigen 3.3 are now supported.

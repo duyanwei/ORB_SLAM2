@@ -36,17 +36,25 @@ void LoadImages(const string &strPathLeft, const string &strPathRight, const str
 
 int main(int argc, char **argv)
 {
-    if(argc != 6)
+    if(argc != 8)
     {
-        cerr << endl << "Usage: ./stereo_euroc path_to_vocabulary path_to_settings path_to_left_folder path_to_right_folder path_to_times_file" << endl;
+        cerr << endl << "Usage: ./stereo_euroc path_to_vocabulary path_to_settings path_to_image_folder path_to_times_file path_traj speed_option enable_viwer" << endl;
         return 1;
     }
+    const string path_traj(argv[5]);
+    const double speed = stod(argv[6]);
+    const bool enable_viwer = stoi(argv[7]);
 
     // Retrieve paths to images
     vector<string> vstrImageLeft;
     vector<string> vstrImageRight;
     vector<double> vTimeStamp;
-    LoadImages(string(argv[3]), string(argv[4]), string(argv[5]), vstrImageLeft, vstrImageRight, vTimeStamp);
+    {
+        const string pathSeq(argv[3]);
+        const string pathCam0 = pathSeq + "/mav0/cam0/data";
+        const string pathCam1 = pathSeq + "/mav0/cam1/data";
+        LoadImages(pathCam0, pathCam1, string(argv[4]), vstrImageLeft, vstrImageRight, vTimeStamp);
+    }
 
     if(vstrImageLeft.empty() || vstrImageRight.empty())
     {
@@ -101,11 +109,11 @@ int main(int argc, char **argv)
     const int nImages = vstrImageLeft.size();
 
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
-    ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::STEREO,true);
+    ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::STEREO,enable_viwer);
 
     // Vector for tracking time statistics
     vector<float> vTimesTrack;
-    vTimesTrack.resize(nImages);
+    vTimesTrack.reserve(nImages);
 
     cout << endl << "-------" << endl;
     cout << "Start processing sequence ..." << endl;
@@ -156,7 +164,7 @@ int main(int argc, char **argv)
 
         double ttrack= std::chrono::duration_cast<std::chrono::duration<double> >(t2 - t1).count();
 
-        vTimesTrack[ni]=ttrack;
+        vTimesTrack.emplace_back(ttrack);
 
         // Wait to load the next frame
         double T=0;
@@ -165,8 +173,19 @@ int main(int argc, char **argv)
         else if(ni>0)
             T = tframe-vTimeStamp[ni-1];
 
+        // consider speed
+        T = T / speed;
+
         if(ttrack<T)
             usleep((T-ttrack)*1e6);
+        else // catch up with images
+        {
+            while (ni < nImages - 1 && 
+                    (vTimeStamp[ni+1] - tframe) / speed < ttrack)
+            {
+                ni++;
+            }
+        }
     }
 
     // Stop all threads
@@ -175,16 +194,18 @@ int main(int argc, char **argv)
     // Tracking time statistics
     sort(vTimesTrack.begin(),vTimesTrack.end());
     float totaltime = 0;
-    for(int ni=0; ni<nImages; ni++)
+    int totalImage = vTimesTrack.size();
+    for(int ni=0; ni<totalImage; ni++)
     {
         totaltime+=vTimesTrack[ni];
     }
     cout << "-------" << endl << endl;
-    cout << "median tracking time: " << vTimesTrack[nImages/2] << endl;
-    cout << "mean tracking time: " << totaltime/nImages << endl;
+    cout << "median tracking time: " << vTimesTrack[totalImage/2] << endl;
+    cout << "mean tracking time: " << totaltime/totalImage << endl;
 
     // Save camera trajectory
-    SLAM.SaveTrajectoryTUM("CameraTrajectory.txt");
+    SLAM.SaveTrajectoryTUM(path_traj + "_CameraTrajectory.txt");
+    SLAM.SaveKeyFrameTrajectoryTUM(path_traj + "_KeyFrameTrajectory.txt");
 
     return 0;
 }

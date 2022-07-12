@@ -493,6 +493,7 @@ void Tracking::Track()
         mlpReferences.push_back(mpReferenceKF);
         mlFrameTimes.push_back(mCurrentFrame.mTimeStamp);
         mlbLost.push_back(mState==LOST);
+        mlFramePoses.push_back(mCurrentFrame.mTcw.clone());
     }
     else
     {
@@ -501,8 +502,8 @@ void Tracking::Track()
         mlpReferences.push_back(mlpReferences.back());
         mlFrameTimes.push_back(mlFrameTimes.back());
         mlbLost.push_back(mState==LOST);
+        mlFramePoses.push_back(cv::Mat::eye(4,4,CV_32F));
     }
-
 }
 
 
@@ -1544,6 +1545,7 @@ void Tracking::Reset()
     mlpReferences.clear();
     mlFrameTimes.clear();
     mlbLost.clear();
+    mlFramePoses.clear();
 
     if(mpViewer)
         mpViewer->Release();

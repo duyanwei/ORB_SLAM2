@@ -110,6 +110,7 @@ public:
     list<KeyFrame*> mlpReferences;
     list<double> mlFrameTimes;
     list<bool> mlbLost;
+    list<cv::Mat> mlFramePoses;
 
     // True if local mapping is deactivated and we are performing only localization
     bool mbOnlyTracking;
