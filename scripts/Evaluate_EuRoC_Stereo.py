@@ -26,7 +26,9 @@ RESULT_ROOT = os.path.join(
     os.environ['SLAM_RESULT'], 'ORB_SLAM2/EuRoC/Stereo/')
 NumRepeating = 10
 SleepTime = 1  # 10 # 25 # second
-SpeedPool = [1.0]  # , 2.0, 3.0, 4.0, 5.0] # x
+# FeaturePool = [500, 800, 1200, 1500]
+FeaturePool = [1200]
+SpeedPool = [1.0, 2.0, 3.0, 4.0, 5.0] # x
 ORB_SLAM2_PATH = os.path.join(os.environ['SLAM_OPENSOURCE'], 'orb/ORB_SLAM2')
 GT_ROOT = os.path.join(DATA_ROOT, 'gt_pose')
 SENSOR = 'cam0'
@@ -56,48 +58,52 @@ class bcolors:
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
 
+for feature in FeaturePool:
 
-# loop over play speed
-for speed in SpeedPool:
+    feature_str = str(feature)
+    result_1st_dir = os.path.join(RESULT_ROOT, feature_str)
 
-    speed_str = str(speed)
-    result_dir = os.path.join(RESULT_ROOT, 'Fast' + speed_str)
+    # loop over play speed
+    for speed in SpeedPool:
 
-    # loop over num of repeating
-    for iteration in range(NumRepeating):
+        speed_str = str(speed)
+        result_dir = os.path.join(result_1st_dir, 'Fast' + speed_str)
 
-        experiment_dir = os.path.join(result_dir, 'Round' + str(iteration + 1))
+        # loop over num of repeating
+        for iteration in range(NumRepeating):
 
-        # loop over sequence
-        for sn, sname in enumerate(SeqNameList):
+            experiment_dir = os.path.join(result_dir, 'Round' + str(iteration + 1))
 
-            print(bcolors.ALERT + "====================================================================" + bcolors.ENDC)
+            # loop over sequence
+            for sn, sname in enumerate(SeqNameList):
 
-            SeqName = SeqNameList[sn]
-            print(bcolors.ALERT + '; Speed: ' + speed_str +
-                  '; Round: ' + str(iteration + 1) + '; Seq: ' + SeqName)
+                print(bcolors.ALERT + "====================================================================" + bcolors.ENDC)
 
-            file_gt = os.path.join(GT_ROOT, SeqName + '_' + SENSOR + '.txt')
-            file_camera_traj = os.path.join(
-                experiment_dir, SeqName+'_CameraTrajectory.txt')
-            file_camera_traj_tracking = os.path.join(
-                experiment_dir, SeqName + '_CameraTrajectory_tracking.txt')
-            file_keyframe_traj = os.path.join(
-                experiment_dir, SeqName + '_KeyFrameTrajectory.txt')
-            file_eval = 'evo_ape tum'
-            options = '-va'
+                SeqName = SeqNameList[sn]
+                print(bcolors.ALERT + '; Speed: ' + speed_str +
+                    '; Round: ' + str(iteration + 1) + '; Seq: ' + SeqName)
 
-            if not os.path.exists(file_gt) or not os.path.exists(file_camera_traj):
-                print('missing gt file or est file')
-                continue
+                file_gt = os.path.join(GT_ROOT, SeqName + '_' + SENSOR + '.txt')
+                file_camera_traj = os.path.join(
+                    experiment_dir, SeqName+'_CameraTrajectory.txt')
+                file_camera_traj_tracking = os.path.join(
+                    experiment_dir, SeqName + '_CameraTrajectory_tracking.txt')
+                file_keyframe_traj = os.path.join(
+                    experiment_dir, SeqName + '_KeyFrameTrajectory.txt')
+                file_eval = 'evo_ape tum'
+                options = '-va'
 
-            # evaluate
-            call_evaluation(file_eval, file_gt,
-                            file_camera_traj, options, SaveResult)
-            call_evaluation(file_eval, file_gt,
-                            file_camera_traj_tracking, options, SaveResult)
-            call_evaluation(file_eval, file_gt,
-                            file_keyframe_traj, options, SaveResult)
+                if not os.path.exists(file_gt) or not os.path.exists(file_camera_traj):
+                    print('missing gt file or est file')
+                    continue
 
-            print(bcolors.OKGREEN + "Finished" + bcolors.ENDC)
-            time.sleep(SleepTime)
+                # evaluate
+                call_evaluation(file_eval, file_gt,
+                                file_camera_traj, options, SaveResult)
+                call_evaluation(file_eval, file_gt,
+                                file_camera_traj_tracking, options, SaveResult)
+                call_evaluation(file_eval, file_gt,
+                                file_keyframe_traj, options, SaveResult)
+
+                print(bcolors.OKGREEN + "Finished" + bcolors.ENDC)
+                time.sleep(SleepTime)

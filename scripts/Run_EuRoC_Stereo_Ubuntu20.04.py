@@ -25,7 +25,8 @@ RESULT_ROOT = os.path.join(
     os.environ['SLAM_RESULT'], 'ORB_SLAM2/EuRoC/Stereo/')
 NumRepeating = 10
 SleepTime = 5  # 10 # 25 # second
-SpeedPool = [1.0, 2.0]  # , 2.0, 3.0, 4.0, 5.0] # x
+FeaturePool = [1200]
+SpeedPool = [1.0, 2.0, 3.0, 4.0, 5.0] # x
 EnableViewer = 0
 EnableLogging = 1
 ORB_SLAM2_PATH = os.path.join(os.environ['SLAM_OPENSOURCE'], 'orb/ORB_SLAM2')
@@ -44,58 +45,63 @@ class bcolors:
     UNDERLINE = '\033[4m'
 
 
-# loop over play speed
-for speed in SpeedPool:
+for feature in FeaturePool:
 
-    speed_str = str(speed)
-    result_dir = os.path.join(RESULT_ROOT, 'Fast' + speed_str)
+    feature_str = str(feature)
+    result_1st_dir = os.path.join(RESULT_ROOT, feature_str)
 
-    # create result dir first level
-    cmd_mkdir = 'mkdir -p ' + result_dir
-    subprocess.call(cmd_mkdir, shell=True)
+    # loop over play speed
+    for speed in SpeedPool:
 
-    # loop over num of repeating
-    for iteration in range(NumRepeating):
+        speed_str = str(speed)
+        result_dir = os.path.join(result_1st_dir, 'Fast' + speed_str)
 
-        # create result dir second level
-        experiment_dir = os.path.join(result_dir, 'Round' + str(iteration + 1))
-        cmd_mkdir = 'mkdir -p ' + experiment_dir
+        # create result dir first level
+        cmd_mkdir = 'mkdir -p ' + result_dir
         subprocess.call(cmd_mkdir, shell=True)
 
-        # loop over sequence
-        for sn, sname in enumerate(SeqNameList):
+        # loop over num of repeating
+        for iteration in range(NumRepeating):
 
-            print(bcolors.ALERT + "====================================================================" + bcolors.ENDC)
+            # create result dir second level
+            experiment_dir = os.path.join(result_dir, 'Round' + str(iteration + 1))
+            cmd_mkdir = 'mkdir -p ' + experiment_dir
+            subprocess.call(cmd_mkdir, shell=True)
 
-            SeqName = SeqNameList[sn]
-            print(bcolors.ALERT + '; Speed: ' + speed_str +
-                  '; Round: ' + str(iteration + 1) + '; Seq: ' + SeqName)
+            # loop over sequence
+            for sn, sname in enumerate(SeqNameList):
 
-            file_Setting = os.path.join(
-                ORB_SLAM2_PATH, 'Examples/Stereo/EuRoC.yaml')
-            file_Vocab = os.path.join(ORB_SLAM2_PATH, 'Vocabulary/ORBvoc.txt')
-            file_data = os.path.join(DATA_ROOT, SeqName)
-            file_timestamp = os.path.join(file_data, 'times.txt')
-            file_traj = os.path.join(experiment_dir, SeqName)
-            file_log = '> ' + file_traj + '_logging.txt' if EnableLogging else ''
+                print(bcolors.ALERT + "====================================================================" + bcolors.ENDC)
 
-            # compose cmd
-            cmd_slam = \
-                ORB_SLAM2_PATH + '/Examples/Stereo/stereo_euroc' + \
-                ' ' + file_Vocab + \
-                ' ' + file_Setting + \
-                ' ' + file_data + \
-                ' ' + file_timestamp + \
-                ' ' + file_traj + \
-                ' ' + speed_str + \
-                ' ' + str(EnableViewer) + \
-                ' ' + file_log
-            print(bcolors.WARNING + "cmd_slam: \n" + cmd_slam + bcolors.ENDC)
+                SeqName = SeqNameList[sn]
+                print(bcolors.ALERT + '; Speed: ' + speed_str +
+                      '; Round: ' + str(iteration + 1) + '; Seq: ' + SeqName)
 
-            print(bcolors.OKGREEN + "Launching SLAM" + bcolors.ENDC)
-            # proc_slam = subprocess.Popen(cmd_slam, shell=True) # starts a new shell and runs the result
-            subprocess.call(cmd_slam, shell=True)
+                file_Setting = os.path.join(
+                    ORB_SLAM2_PATH, 'Examples/Stereo/EuRoC_' + feature_str + '.yaml')
+                file_Vocab = os.path.join(ORB_SLAM2_PATH, 'Vocabulary/ORBvoc.txt')
+                file_data = os.path.join(DATA_ROOT, SeqName)
+                file_timestamp = os.path.join(file_data, 'times.txt')
+                file_traj = os.path.join(experiment_dir, SeqName)
+                file_log = '> ' + file_traj + '_logging.txt' if EnableLogging else ''
 
-            print(bcolors.OKGREEN + "Finished" + bcolors.ENDC)
-            subprocess.call('pkill stereo_euroc', shell=True)
-            time.sleep(SleepTime)
+                # compose cmd
+                cmd_slam = \
+                    ORB_SLAM2_PATH + '/Examples/Stereo/stereo_euroc' + \
+                    ' ' + file_Vocab + \
+                    ' ' + file_Setting + \
+                    ' ' + file_data + \
+                    ' ' + file_timestamp + \
+                    ' ' + file_traj + \
+                    ' ' + speed_str + \
+                    ' ' + str(EnableViewer) + \
+                    ' ' + file_log
+                print(bcolors.WARNING + "cmd_slam: \n" + cmd_slam + bcolors.ENDC)
+
+                print(bcolors.OKGREEN + "Launching SLAM" + bcolors.ENDC)
+                # proc_slam = subprocess.Popen(cmd_slam, shell=True) # starts a new shell and runs the result
+                subprocess.call(cmd_slam, shell=True)
+
+                print(bcolors.OKGREEN + "Finished" + bcolors.ENDC)
+                subprocess.call('pkill stereo_euroc', shell=True)
+                time.sleep(SleepTime)
