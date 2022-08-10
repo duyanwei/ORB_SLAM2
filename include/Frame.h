@@ -163,6 +163,9 @@ public:
     // Camera pose.
     cv::Mat mTcw;
 
+    // predicted pose, for recording and comparison
+    cv::Mat predicted_mTcw;
+
     // Current and Next Frame id.
     static long unsigned int nNextId;
     long unsigned int mnId;

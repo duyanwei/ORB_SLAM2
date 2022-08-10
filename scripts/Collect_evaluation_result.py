@@ -21,12 +21,16 @@ SeqNameList = [
     'V1_01_easy', 'V1_02_medium', 'V1_03_difficult',
     'V2_01_easy', 'V2_02_medium', 'V2_03_difficult']
 RESULT_ROOT = os.path.join(
-    os.environ['SLAM_RESULT'], 'ORB_SLAM2/EuRoC/Stereo/')
+    os.environ['SLAM_RESULT'], 'ORB_SLAM2/EuRoC/Stereo/Predicted')
 NumRepeating = 10
 SleepTime = 1  # 10 # 25 # second
-FeaturePool = [500, 800, 1200, 1500]
+FeaturePool = [500]
 SpeedPool = [1.0, 2.0, 3.0, 4.0, 5.0]  # x
-ResultFile = ['CameraTrajectory_tracking', 'CameraTrajectory', 'KeyFrameTrajectory']
+ResultFile = [
+    'CameraTrajectory_tracking',
+    'CameraTrajectory',
+    'KeyFrameTrajectory',
+    'CameraTrajectory_predicted']
 
 # ----------------------------------------------------------------------------------------------------------------------
 
@@ -40,7 +44,7 @@ for feature in FeaturePool:
                            len(SeqNameList), NumRepeating))
 
     mean_timing_table = np.full((len(SpeedPool),
-                           len(SeqNameList), NumRepeating), -1.0)
+                                 len(SeqNameList), NumRepeating), -1.0)
     median_timing_table = np.full_like(mean_timing_table, -1.0)
 
     # loop over play speed
@@ -69,49 +73,20 @@ for feature in FeaturePool:
                         with z.open('stats.json') as f:
                             data = f.read()
                             rmse_table[i, j, k, l] = json.loads(data)['rmse']
-                # @TODO: the following code can be optimized!!!
                 # collect tracking failure info
-                file_log = os.path.join(experiment_dir, sname + '_logging.txt')
-                # wanted = ['Total', 'processed images:', 'frame count:']
-                wanted = ['frame count:', 'median tracking time:', 'mean tracking time:']
-                candidates = []
-                with open(file_log, 'r') as log_f:
-                    lines = log_f.read().splitlines()
-                    for line in lines:
-                        for word in wanted:
-                            if line.startswith(word):
-                                candidates.append(line)
-                tracking_ratio = 0.0
-                if len(candidates) == 0:
-                    print(
-                        f'tracking failed: Speed {speed}, Seq {sname}, Round {l+1}')
-                else:
-                    # read the image number in pool
-                    # total_images = int(candidates[0].split()[1])
-                    # read the processed image number
-                    # processed_images = int(candidates[1].split()[2])
-                    # read the camera trajectory status
-                    # frame_count = int((candidates[2].split()[2]).split(',')[0])
-                    # good_frame_count = int(
-                    # (candidates[2].split()[6]).split(',')[0])
-                    # read the camera real time tracking status
-                    tracking_frame_count = int(
-                        (candidates[2].split()[2]).split(',')[0])
-                    tracking_good_frame_count = int(
-                        (candidates[2].split()[6]).split(',')[0])
-                    # print info
-                    # print(total_images, processed_images, frame_count,
-                    #   good_frame_count, tracking_frame_count, tracking_good_frame_count)
-                    tracking_ratio = float(tracking_good_frame_count) / tracking_frame_count
-
-
-                    # timing
-                    median_timing_table[j, k, l] = float(candidates[0].split()[-1])
-                    mean_timing_table[j, k, l] = float(candidates[1].split()[-1])
+                file_stats = os.path.join(experiment_dir, sname + '_stats.txt')
+                if not os.path.exists(file_stats):
+                    print(f"{file_stats} does NOT exist, take the current experiment as failure")
+                    print(f'tracking failed: Feature {feature}, Speed {speed}, Seq {sname}, Round {l+1}')
+                    continue
+                stats = np.loadtxt(file_stats)
+                tracking_ratio = stats[9] / stats[8]
                 if tracking_ratio < 0.6:
                     rmse_table[:, j, k, l] = -1
-                    print(
-                        f'tracking failed: Speed {speed}, Seq {sname}, Round {l+1}')
+                    print(f'tracking failed: Feature {feature}, Speed {speed}, Seq {sname}, Round {l+1}')
+                # record timing
+                mean_timing_table[j, k, l] = stats[2]
+                median_timing_table[j, k, l] = stats[3]
 
     mean_timing_table = mean_timing_table.reshape(-1, NumRepeating)
     median_timing_table = median_timing_table.reshape(-1, NumRepeating)
@@ -119,17 +94,31 @@ for feature in FeaturePool:
     for i, result_name in enumerate(ResultFile):
         output = os.path.join(result_1st_dir, result_name + '.txt')
         mn, nn, pn, qn = rmse_table.shape
-        # the extra two column stores mean and median
-        cur_table = np.full((nn * pn, qn + 4), -1.0)
+        # the extra two column stores mean and median rmse
+        cur_table = np.full((nn * pn, qn + 2), -1.0)
         cur_table[:, 0:qn] = rmse_table[i, :, :, :].reshape(nn * pn, qn)
         for row in range(cur_table.shape[0]):
             indices = cur_table[row, :] > 0.0
-            if np.sum(indices) > 0:
+            if np.sum(indices) == qn:  # make sure every sequence succeeds
                 cur_table[row, qn] = np.mean(cur_table[row, indices])
                 cur_table[row, qn + 1] = np.median(cur_table[row, indices])
-                cur_table[row, qn + 2] = np.mean(mean_timing_table[row, indices[:-4]])
-                cur_table[row, qn + 3] = np.median(median_timing_table[row, indices[:-4]])
+                # cur_table[row, qn + 2] = np.mean(mean_timing_table[row, indices[:-4]])
+                # cur_table[row, qn + 3] = np.median(median_timing_table[row, indices[:-4]])
             else:
                 cur_table[row, qn] = -1
                 cur_table[row, qn + 1] = -1
         np.savetxt(output, cur_table, fmt='%.6f', delimiter=',')
+
+        # for visualization
+        output = os.path.join(result_1st_dir, result_name + '_vis.txt')
+        final_table = np.full((pn + 2, nn), -1.0)
+        for col in range(final_table.shape[1]):
+            start_ind = 0 + pn * col
+            end_ind = start_ind + pn
+            final_table[0:pn, col] = cur_table[start_ind:end_ind, qn]
+            indices = final_table[:, col] > 0.0
+            if np.sum(indices) == 0:
+                continue
+            final_table[pn, col] = np.mean(final_table[indices, col])
+            final_table[pn+1, col] = np.sum(indices) / pn
+        np.savetxt(output, np.transpose(final_table), fmt='%.6f', delimiter=',')

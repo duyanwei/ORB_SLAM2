@@ -502,10 +502,11 @@ void Tracking::Track()
         mlpReferences.push_back(mlpReferences.back());
         mlFrameTimes.push_back(mlFrameTimes.back());
         mlbLost.push_back(mState==LOST);
-        mlFramePoses.push_back(cv::Mat::eye(4,4,CV_32F));
+        // mlFramePoses.push_back(cv::Mat::eye(4,4,CV_32F));
+        mlFramePoses.push_back(mlFramePoses.back());
     }
+    mlFramePredictedPoses.push_back(mCurrentFrame.predicted_mTcw.clone());
 }
-
 
 void Tracking::StereoInitialization()
 {
@@ -874,6 +875,7 @@ bool Tracking::TrackWithMotionModel()
     UpdateLastFrame();
 
     mCurrentFrame.SetPose(mVelocity*mLastFrame.mTcw);
+    mCurrentFrame.predicted_mTcw = mVelocity * mLastFrame.mTcw;
 
     fill(mCurrentFrame.mvpMapPoints.begin(),mCurrentFrame.mvpMapPoints.end(),static_cast<MapPoint*>(NULL));
 
@@ -1546,6 +1548,7 @@ void Tracking::Reset()
     mlFrameTimes.clear();
     mlbLost.clear();
     mlFramePoses.clear();
+    mlFramePredictedPoses.clear();
 
     if(mpViewer)
         mpViewer->Release();

@@ -348,6 +348,7 @@ void System::SaveTrajectoryTUM(const string &filename)
     list<ORB_SLAM2::KeyFrame*>::iterator lRit = mpTracker->mlpReferences.begin();
     list<double>::iterator lT = mpTracker->mlFrameTimes.begin();
     list<bool>::iterator lbL = mpTracker->mlbLost.begin();
+    int camera_trajectory_num = 0;
     for(list<cv::Mat>::iterator lit=mpTracker->mlRelativeFramePoses.begin(),
         lend=mpTracker->mlRelativeFramePoses.end();lit!=lend;lit++, lRit++, lT++, lbL++)
     {
@@ -374,27 +375,24 @@ void System::SaveTrajectoryTUM(const string &filename)
         vector<float> q = Converter::toQuaternion(Rwc);
 
         f << setprecision(6) << *lT << " " <<  setprecision(9) << twc.at<float>(0) << " " << twc.at<float>(1) << " " << twc.at<float>(2) << " " << q[0] << " " << q[1] << " " << q[2] << " " << q[3] << endl;
+        camera_trajectory_num += 1;
     }
     f.close();
     cout << endl << "camera trajectory saved!" << endl;
 
     // save tracking result
+    int tracking_pose_num = -1;
     {
         const std::size_t found = filename.find_last_of(".");
         const std::string tracking_filename = filename.substr(0, found) + "_tracking.txt";
         f.open(tracking_filename.c_str());
         f << fixed;
 
-        size_t frame_count = 0;
-        size_t good_frame_count = 0;
-
         list<double>::iterator lT = mpTracker->mlFrameTimes.begin();
         list<bool>::iterator lbL = mpTracker->mlbLost.begin();
         for(list<cv::Mat>::iterator lit=mpTracker->mlFramePoses.begin(),
             lend=mpTracker->mlFramePoses.end();lit!=lend;lit++, lT++, lbL++)
         {
-            ++frame_count;
-
             if(*lbL)
                 continue;
 
@@ -405,14 +403,62 @@ void System::SaveTrajectoryTUM(const string &filename)
             vector<float> q = Converter::toQuaternion(Rwc);
 
             f << setprecision(6) << *lT << " " <<  setprecision(9) << twc.at<float>(0) << " " << twc.at<float>(1) << " " << twc.at<float>(2) << " " << q[0] << " " << q[1] << " " << q[2] << " " << q[3] << endl;
-            ++good_frame_count;
+            tracking_pose_num += 1;
         }
         f.close();
-        cout << endl
-             << "frame count: " << frame_count
-             << ", good frame count: " << good_frame_count
-             << ", tracking ratio: " << (double)good_frame_count / (double)frame_count << endl;
         cout << endl << "camera tracking trajectory saved!" << endl;
+    }
+
+    // save predicted pose result
+    int predicted_pose_num = -1;
+    {
+        if (mpTracker->mlFramePoses.size() != mpTracker->mlFramePredictedPoses.size())
+        {
+            std::cout << "(IVA-SLAM) Error size of predicted pose "
+                      << "\n";
+        }
+        const std::size_t found = filename.find_last_of(".");
+        const std::string tracking_filename = filename.substr(0, found) + "_predicted.txt";
+        f.open(tracking_filename.c_str());
+        f << fixed;
+
+        list<double>::iterator lT = mpTracker->mlFrameTimes.begin();
+        for(list<cv::Mat>::iterator lit=mpTracker->mlFramePredictedPoses.begin(),
+            lend=mpTracker->mlFramePredictedPoses.end();lit!=lend;lit++, lT++)
+        {
+            cv::Mat Tcw = (*lit);
+            if (Tcw.empty())
+            {
+                continue;
+            }
+            cv::Mat Rwc = Tcw.rowRange(0, 3).colRange(0, 3).t();
+            cv::Mat twc = -Rwc*Tcw.rowRange(0,3).col(3);
+
+            vector<float> q = Converter::toQuaternion(Rwc);
+
+            f << setprecision(6) << *lT << " " <<  setprecision(9) << twc.at<float>(0) << " " << twc.at<float>(1) << " " << twc.at<float>(2) << " " << q[0] << " " << q[1] << " " << q[2] << " " << q[3] << endl;
+            predicted_pose_num += 1;
+        }
+        f.close();
+        cout << endl << "camera predicted pose saved!" << endl;
+    }
+
+    // save stats
+    {
+        // start saving
+        const std::size_t found = filename.find_last_of("_");
+        const std::string tracking_filename = filename.substr(0, found) + "_stats.txt";
+        cout << endl << "Saving stats to " << tracking_filename << " ..." << endl;
+        f.open(tracking_filename.c_str(), std::ofstream::app);
+        f << fixed;
+        // map number, biggest map id, 
+        f << 1 << " "  // map size
+          << 0 << " "  // map id
+          << camera_trajectory_num << " "
+          << tracking_pose_num << " "
+          << predicted_pose_num << endl;
+        f.close();
+        cout << endl << "End of saving stats to " << tracking_filename << "..." << endl;
     }
 }
 

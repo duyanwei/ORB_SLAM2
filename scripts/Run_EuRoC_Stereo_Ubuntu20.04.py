@@ -22,11 +22,11 @@ SeqNameList = [
     'V1_01_easy', 'V1_02_medium', 'V1_03_difficult',
     'V2_01_easy', 'V2_02_medium', 'V2_03_difficult']
 RESULT_ROOT = os.path.join(
-    os.environ['SLAM_RESULT'], 'ORB_SLAM2/EuRoC/Stereo/')
+    os.environ['SLAM_RESULT'], 'ORB_SLAM2/EuRoC/Stereo/Predicted/')
 NumRepeating = 10
 SleepTime = 5  # 10 # 25 # second
-FeaturePool = [1200]
-SpeedPool = [1.0, 2.0, 3.0, 4.0, 5.0] # x
+FeaturePool = [500]
+SpeedPool = [1.0, 2.0, 3.0, 4.0, 5.0]  # x
 EnableViewer = 0
 EnableLogging = 1
 ORB_SLAM2_PATH = os.path.join(os.environ['SLAM_OPENSOURCE'], 'orb/ORB_SLAM2')
@@ -74,8 +74,7 @@ for feature in FeaturePool:
                 print(bcolors.ALERT + "====================================================================" + bcolors.ENDC)
 
                 SeqName = SeqNameList[sn]
-                print(bcolors.ALERT + '; Speed: ' + speed_str +
-                      '; Round: ' + str(iteration + 1) + '; Seq: ' + SeqName)
+                print(bcolors.OKGREEN + f'Seq: {SeqName}; Feature: {feature_str}; Speed: {speed_str}; Round: {str(iteration + 1)};')
 
                 file_Setting = os.path.join(
                     ORB_SLAM2_PATH, 'Examples/Stereo/EuRoC_' + feature_str + '.yaml')

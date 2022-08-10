@@ -23,16 +23,21 @@ SeqNameList = [
     'V1_01_easy', 'V1_02_medium', 'V1_03_difficult',
     'V2_01_easy', 'V2_02_medium', 'V2_03_difficult']
 RESULT_ROOT = os.path.join(
-    os.environ['SLAM_RESULT'], 'ORB_SLAM2/EuRoC/Stereo/')
+    os.environ['SLAM_RESULT'], 'ORB_SLAM2/EuRoC/Stereo/Predicted')
 NumRepeating = 10
 SleepTime = 1  # 10 # 25 # second
 # FeaturePool = [500, 800, 1200, 1500]
-FeaturePool = [1200]
-SpeedPool = [1.0, 2.0, 3.0, 4.0, 5.0] # x
+FeaturePool = [500]
+SpeedPool = [1.0, 2.0, 3.0, 4.0, 5.0]  # x
 ORB_SLAM2_PATH = os.path.join(os.environ['SLAM_OPENSOURCE'], 'orb/ORB_SLAM2')
 GT_ROOT = os.path.join(DATA_ROOT, 'gt_pose')
 SENSOR = 'cam0'
 SaveResult = 1
+ResultFile = [
+    'CameraTrajectory_tracking',
+    'CameraTrajectory',
+    'KeyFrameTrajectory',
+    'CameraTrajectory_predicted']
 
 # ----------------------------------------------------------------------------------------------------------------------
 
@@ -58,6 +63,7 @@ class bcolors:
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
 
+
 for feature in FeaturePool:
 
     feature_str = str(feature)
@@ -80,30 +86,26 @@ for feature in FeaturePool:
                 print(bcolors.ALERT + "====================================================================" + bcolors.ENDC)
 
                 SeqName = SeqNameList[sn]
-                print(bcolors.ALERT + '; Speed: ' + speed_str +
-                    '; Round: ' + str(iteration + 1) + '; Seq: ' + SeqName)
+                print(bcolors.OKGREEN + f'Seq: {SeqName}; Feature: {feature_str}; Speed: {speed_str}; Round: {str(iteration + 1)};')
 
-                file_gt = os.path.join(GT_ROOT, SeqName + '_' + SENSOR + '.txt')
-                file_camera_traj = os.path.join(
-                    experiment_dir, SeqName+'_CameraTrajectory.txt')
-                file_camera_traj_tracking = os.path.join(
-                    experiment_dir, SeqName + '_CameraTrajectory_tracking.txt')
-                file_keyframe_traj = os.path.join(
-                    experiment_dir, SeqName + '_KeyFrameTrajectory.txt')
+                # create evaluation command
                 file_eval = 'evo_ape tum'
-                options = '-va'
+                options = '-va --align_origin'
 
-                if not os.path.exists(file_gt) or not os.path.exists(file_camera_traj):
-                    print('missing gt file or est file')
-                    continue
+                # gt file
+                file_gt = os.path.join(GT_ROOT, SeqName + '_' + SENSOR + '.txt')
+                if not os.path.exists(file_gt):
+                    print(f'missing gt file: {file_gt}')
+                    exit(-1)
 
-                # evaluate
-                call_evaluation(file_eval, file_gt,
-                                file_camera_traj, options, SaveResult)
-                call_evaluation(file_eval, file_gt,
-                                file_camera_traj_tracking, options, SaveResult)
-                call_evaluation(file_eval, file_gt,
-                                file_keyframe_traj, options, SaveResult)
+                # loop over each est file
+                for file_est_name in ResultFile:
+                    file_est = os.path.join(experiment_dir, SeqName+'_' + file_est_name + '.txt')
+                    if not os.path.exists(file_est):
+                        print(f'missing est file {file_est}')
+                        continue
+                    # evaluate
+                    call_evaluation(file_eval, file_gt, file_est, options, SaveResult)
 
                 print(bcolors.OKGREEN + "Finished" + bcolors.ENDC)
                 time.sleep(SleepTime)

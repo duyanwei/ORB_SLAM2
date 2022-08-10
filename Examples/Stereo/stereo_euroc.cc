@@ -194,14 +194,30 @@ int main(int argc, char **argv)
     // Tracking time statistics
     sort(vTimesTrack.begin(),vTimesTrack.end());
     float totaltime = 0;
-    int totalImage = vTimesTrack.size();
-    for(int ni=0; ni<totalImage; ni++)
+    int proccIm = vTimesTrack.size();
+    for(int ni=0; ni<proccIm; ni++)
     {
         totaltime+=vTimesTrack[ni];
     }
     cout << "-------" << endl << endl;
-    cout << "median tracking time: " << vTimesTrack[totalImage/2] << endl;
-    cout << "mean tracking time: " << totaltime/totalImage << endl;
+    cout << "processed images: " << proccIm << endl;
+    cout << "median tracking time: " << vTimesTrack[proccIm/2] << endl;
+    cout << "mean tracking time: " << totaltime/proccIm << endl;
+    cout << "min tracking time: " << vTimesTrack.front() << endl;
+    cout << "max tracking time: " << vTimesTrack.back() << endl;
+
+    // save to stats
+    {
+        std::ofstream myfile(path_traj + "_stats.txt");
+        myfile << std::setprecision(6) << nImages << " "
+               << proccIm << " "
+               << totaltime / proccIm << " "
+               << vTimesTrack[proccIm/2] << " "
+               << vTimesTrack.front() << " "
+               << vTimesTrack.back() << " ";
+        myfile.close();
+    }
+
 
     // Save camera trajectory
     SLAM.SaveTrajectoryTUM(path_traj + "_CameraTrajectory.txt");
