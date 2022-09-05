@@ -20,13 +20,14 @@ SeqNameList = [
     'MH_01_easy', 'MH_02_easy', 'MH_03_medium',
     'MH_04_difficult', 'MH_05_difficult',
     'V1_01_easy', 'V1_02_medium', 'V1_03_difficult',
-    'V2_01_easy', 'V2_02_medium', 'V2_03_difficult']
+    'V2_01_easy', 'V2_02_medium', 'V2_03_difficult'
+]
 RESULT_ROOT = os.path.join(
-    os.environ['SLAM_RESULT'], 'ORB_SLAM2/EuRoC/Stereo/Predicted/')
-NumRepeating = 10
+    os.environ['SLAM_RESULT'], 'ORB_SLAM2/EuRoC/Stereo/Latest/')
+NumRepeating = 5
 SleepTime = 5  # 10 # 25 # second
-FeaturePool = [500]
-SpeedPool = [1.0, 2.0, 3.0, 4.0, 5.0]  # x
+FeaturePool = [800]  # [800]
+SpeedPool = [1.0]  # , 2.0, 3.0, 4.0, 5.0]  # x
 EnableViewer = 0
 EnableLogging = 1
 ORB_SLAM2_PATH = os.path.join(os.environ['SLAM_OPENSOURCE'], 'orb/ORB_SLAM2')

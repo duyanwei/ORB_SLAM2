@@ -166,6 +166,9 @@ void Tracking::SetViewer(Viewer *pViewer)
 
 cv::Mat Tracking::GrabImageStereo(const cv::Mat &imRectLeft, const cv::Mat &imRectRight, const double &timestamp)
 {
+    logCurrentFrame_.setZero();
+    logCurrentFrame_.timestamp = timestamp;
+    timer_.tic();
     mImGray = imRectLeft;
     cv::Mat imGrayRight = imRectRight;
 
@@ -197,7 +200,9 @@ cv::Mat Tracking::GrabImageStereo(const cv::Mat &imRectLeft, const cv::Mat &imRe
     }
 
     mCurrentFrame = Frame(mImGray,imGrayRight,timestamp,mpORBextractorLeft,mpORBextractorRight,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth);
-
+    logCurrentFrame_.create_frame = timer_.toc();
+    logCurrentFrame_.stereo_matching = mCurrentFrame.logCurrentFrame_.stereo_matching;
+    logCurrentFrame_.feature_extraction = mCurrentFrame.logCurrentFrame_.feature_extraction;
     Track();
 
     return mCurrentFrame.mTcw.clone();
@@ -306,13 +311,19 @@ void Tracking::Track()
 
                 if(mVelocity.empty() || mCurrentFrame.mnId<mnLastRelocFrameId+2)
                 {
+                    timer_.tic();
                     bOK = TrackReferenceKeyFrame();
+                    logCurrentFrame_.track_keyframe = timer_.toc();
                 }
                 else
                 {
+                    timer_.tic();
                     bOK = TrackWithMotionModel();
+                    logCurrentFrame_.track_motion = timer_.toc();
+                    timer_.tic();
                     if(!bOK)
                         bOK = TrackReferenceKeyFrame();
+                    logCurrentFrame_.track_keyframe = timer_.toc();
                 }
             }
             else
@@ -397,8 +408,10 @@ void Tracking::Track()
         // If we have an initial estimation of the camera pose and matching. Track the local map.
         if(!mbOnlyTracking)
         {
+            timer_.tic();
             if(bOK)
                 bOK = TrackLocalMap();
+            logCurrentFrame_.track_map = timer_.toc();
         }
         else
         {
@@ -420,6 +433,7 @@ void Tracking::Track()
         // If tracking were good, check if we insert a keyframe
         if(bOK)
         {
+            timer_.tic();
             // Update motion model
             if(!mLastFrame.mTcw.empty())
             {
@@ -430,6 +444,8 @@ void Tracking::Track()
             }
             else
                 mVelocity = cv::Mat();
+            logCurrentFrame_.update_motion = timer_.toc();
+            timer_.tic();
 
             mpMapDrawer->SetCurrentCameraPose(mCurrentFrame.mTcw);
 
@@ -466,6 +482,7 @@ void Tracking::Track()
                 if(mCurrentFrame.mvpMapPoints[i] && mCurrentFrame.mvbOutlier[i])
                     mCurrentFrame.mvpMapPoints[i]=static_cast<MapPoint*>(NULL);
             }
+            logCurrentFrame_.post_processing = timer_.toc();
         }
 
         // Reset if the camera get lost soon after initialization
@@ -506,6 +523,7 @@ void Tracking::Track()
         mlFramePoses.push_back(mlFramePoses.back());
     }
     mlFramePredictedPoses.push_back(mCurrentFrame.predicted_mTcw.clone());
+    mFrameTimeLog_.push_back(logCurrentFrame_);
 }
 
 void Tracking::StereoInitialization()

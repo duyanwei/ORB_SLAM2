@@ -23,11 +23,10 @@ SeqNameList = [
     'V1_01_easy', 'V1_02_medium', 'V1_03_difficult',
     'V2_01_easy', 'V2_02_medium', 'V2_03_difficult']
 RESULT_ROOT = os.path.join(
-    os.environ['SLAM_RESULT'], 'ORB_SLAM2/EuRoC/Stereo/Predicted')
-NumRepeating = 10
+    os.environ['SLAM_RESULT'], 'ORB_SLAM2/EuRoC/Stereo/Latest')
+NumRepeating = 5
 SleepTime = 1  # 10 # 25 # second
-# FeaturePool = [500, 800, 1200, 1500]
-FeaturePool = [500]
+FeaturePool = [800]
 SpeedPool = [1.0, 2.0, 3.0, 4.0, 5.0]  # x
 ORB_SLAM2_PATH = os.path.join(os.environ['SLAM_OPENSOURCE'], 'orb/ORB_SLAM2')
 GT_ROOT = os.path.join(DATA_ROOT, 'gt_pose')
@@ -37,7 +36,8 @@ ResultFile = [
     'CameraTrajectory_tracking',
     'CameraTrajectory',
     'KeyFrameTrajectory',
-    'CameraTrajectory_predicted']
+    'CameraTrajectory_predicted'
+]
 
 # ----------------------------------------------------------------------------------------------------------------------
 
@@ -47,6 +47,9 @@ def call_evaluation(eval, gt, est, options, save):
     if save:
         result = os.path.splitext(est)[0] + '.zip'
         cmd_eval = cmd_eval + ' --save_results ' + result
+        if os.path.exists(result):
+            cmd_rm_result = 'rm ' + result
+            subprocess.call(cmd_rm_result, shell=True)
 
     print(bcolors.WARNING + "cmd_eval: \n" + cmd_eval + bcolors.ENDC)
     print(bcolors.HEADER + os.path.basename(est))

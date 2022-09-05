@@ -348,10 +348,12 @@ void System::SaveTrajectoryTUM(const string &filename)
     list<ORB_SLAM2::KeyFrame*>::iterator lRit = mpTracker->mlpReferences.begin();
     list<double>::iterator lT = mpTracker->mlFrameTimes.begin();
     list<bool>::iterator lbL = mpTracker->mlbLost.begin();
+    int total_camera_trajectory_num = 0;
     int camera_trajectory_num = 0;
     for(list<cv::Mat>::iterator lit=mpTracker->mlRelativeFramePoses.begin(),
         lend=mpTracker->mlRelativeFramePoses.end();lit!=lend;lit++, lRit++, lT++, lbL++)
     {
+        ++total_camera_trajectory_num;
         if(*lbL)
             continue;
 
@@ -375,13 +377,13 @@ void System::SaveTrajectoryTUM(const string &filename)
         vector<float> q = Converter::toQuaternion(Rwc);
 
         f << setprecision(6) << *lT << " " <<  setprecision(9) << twc.at<float>(0) << " " << twc.at<float>(1) << " " << twc.at<float>(2) << " " << q[0] << " " << q[1] << " " << q[2] << " " << q[3] << endl;
-        camera_trajectory_num += 1;
+        ++camera_trajectory_num;
     }
     f.close();
     cout << endl << "camera trajectory saved!" << endl;
 
     // save tracking result
-    int tracking_pose_num = -1;
+    int tracking_pose_num = 0;
     {
         const std::size_t found = filename.find_last_of(".");
         const std::string tracking_filename = filename.substr(0, found) + "_tracking.txt";
@@ -403,14 +405,14 @@ void System::SaveTrajectoryTUM(const string &filename)
             vector<float> q = Converter::toQuaternion(Rwc);
 
             f << setprecision(6) << *lT << " " <<  setprecision(9) << twc.at<float>(0) << " " << twc.at<float>(1) << " " << twc.at<float>(2) << " " << q[0] << " " << q[1] << " " << q[2] << " " << q[3] << endl;
-            tracking_pose_num += 1;
+            ++tracking_pose_num;
         }
         f.close();
         cout << endl << "camera tracking trajectory saved!" << endl;
     }
 
     // save predicted pose result
-    int predicted_pose_num = -1;
+    int predicted_pose_num = 0;
     {
         if (mpTracker->mlFramePoses.size() != mpTracker->mlFramePredictedPoses.size())
         {
@@ -437,7 +439,7 @@ void System::SaveTrajectoryTUM(const string &filename)
             vector<float> q = Converter::toQuaternion(Rwc);
 
             f << setprecision(6) << *lT << " " <<  setprecision(9) << twc.at<float>(0) << " " << twc.at<float>(1) << " " << twc.at<float>(2) << " " << q[0] << " " << q[1] << " " << q[2] << " " << q[3] << endl;
-            predicted_pose_num += 1;
+            ++predicted_pose_num;
         }
         f.close();
         cout << endl << "camera predicted pose saved!" << endl;
@@ -454,11 +456,24 @@ void System::SaveTrajectoryTUM(const string &filename)
         // map number, biggest map id, 
         f << 1 << " "  // map size
           << 0 << " "  // map id
+          << total_camera_trajectory_num << " "
           << camera_trajectory_num << " "
           << tracking_pose_num << " "
           << predicted_pose_num << endl;
         f.close();
         cout << endl << "End of saving stats to " << tracking_filename << "..." << endl;
+
+        // save tracking time log
+        const std::string tracking_time_filename = filename.substr(0, found) + "_tracking_timeLog.txt";
+        cout << endl << "Saving tracking time log to " << tracking_time_filename << " ..." << endl;
+        f.open(tracking_time_filename.c_str(), std::ofstream::out);
+        f << fixed;
+        for (const auto& log : mpTracker->mFrameTimeLog_)
+        {
+            f << log;
+        }
+        f.close();
+        cout << endl << "End of saving tracking time log to " << tracking_time_filename << "..." << endl;
     }
 }
 

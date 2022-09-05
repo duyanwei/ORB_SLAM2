@@ -114,6 +114,7 @@ int main(int argc, char **argv)
     // Vector for tracking time statistics
     vector<float> vTimesTrack;
     vTimesTrack.reserve(nImages);
+    vector<pair<double, double> > vStampedTimesTrack;
 
     cout << endl << "-------" << endl;
     cout << "Start processing sequence ..." << endl;
@@ -165,6 +166,7 @@ int main(int argc, char **argv)
         double ttrack= std::chrono::duration_cast<std::chrono::duration<double> >(t2 - t1).count();
 
         vTimesTrack.emplace_back(ttrack);
+        vStampedTimesTrack.emplace_back(tframe, ttrack);
 
         // Wait to load the next frame
         double T=0;
@@ -216,8 +218,15 @@ int main(int argc, char **argv)
                << vTimesTrack.front() << " "
                << vTimesTrack.back() << " ";
         myfile.close();
-    }
 
+        myfile.open(path_traj + "_timeLog.txt");
+        myfile << std::setprecision(20);
+        for (const auto& m : vStampedTimesTrack)
+        {
+            myfile << m.first << " " << m.second << "\n";
+        }
+        myfile.close();
+    }
 
     // Save camera trajectory
     SLAM.SaveTrajectoryTUM(path_traj + "_CameraTrajectory.txt");

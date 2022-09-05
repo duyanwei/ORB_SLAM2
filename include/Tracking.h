@@ -37,6 +37,7 @@
 #include "Initializer.h"
 #include "MapDrawer.h"
 #include "System.h"
+#include "timer.h"
 
 #include <unistd.h>
 #include <mutex>
@@ -217,6 +218,55 @@ protected:
     bool mbRGB;
 
     list<MapPoint*> mlpTemporalPoints;
+
+public:
+    struct TimeLog
+    {
+        double timestamp = 0.0;
+        double feature_extraction = 0.0;
+        double stereo_matching = 0.0;
+        double create_frame = 0.0;
+        double track_motion = 0.0;
+        double track_keyframe = 0.0;
+        double track_map = 0.0;
+        double update_motion = 0.0;
+        double post_processing = 0.0;
+
+        /**
+         * @brief Set the Zero object
+         * 
+         */
+        void setZero()
+        {
+            timestamp = 0.0;
+            feature_extraction = 0.0;
+            stereo_matching = 0.0;
+            create_frame = 0.0;
+            track_motion = 0.0;
+            track_keyframe = 0.0;
+            track_map = 0.0;
+            update_motion = 0.0;
+            post_processing = 0.0;
+        }
+
+        friend std::ostream& operator<<(std::ostream& os, const TimeLog& l)
+        {
+            os << std::setprecision(10);
+            os << l.timestamp << " "
+               << l.feature_extraction << " "
+               << l.stereo_matching << " "
+               << l.create_frame << " "
+               << l.track_motion << " "
+               << l.track_keyframe << " "
+               << l.track_map << " "
+               << l.update_motion << " "
+               << l.post_processing << "\n";
+            return os;
+        }
+    };
+    TimeLog logCurrentFrame_;
+    std::vector<TimeLog> mFrameTimeLog_;
+    slam_utility::stats::TicTocTimer timer_;
 };
 
 } //namespace ORB_SLAM
